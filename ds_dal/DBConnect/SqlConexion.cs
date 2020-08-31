@@ -16,11 +16,11 @@ namespace DeltaCore.DataAccess.DBConnect
 
         #endregion
 
-        #region "Métodos Base"
+        #region "Mï¿½todos Base"
 
         /// <summary>
-        /// Constructor, inicializa la clase creando el objeto de conexion con la cadena de conexión, un command y los relaciona.
-        /// Crea una nueva instancia del la clase “conexion” y se conecta por default a la base de datos “bdnsar”
+        /// Constructor, inicializa la clase creando el objeto de conexion con la cadena de conexiï¿½n, un command y los relaciona.
+        /// Crea una nueva instancia del la clase ï¿½conexionï¿½ y se conecta por default a la base de datos ï¿½bdnsarï¿½
         /// </summary>    
         public void DBConnect(string DB)
         {
@@ -42,7 +42,7 @@ namespace DeltaCore.DataAccess.DBConnect
         }
         
         /// <summary>
-        /// Este método, verifica si la conexion con la base de datos esta disponible
+        /// Este mï¿½todo, verifica si la conexion con la base de datos esta disponible
         /// </summary>
         public bool Monitor()
         {

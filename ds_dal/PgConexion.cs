@@ -1,37 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
+using System.Linq;
+using System.Text;
 using DeltaCore.Utilities;
-using FirebirdSql.Data.FirebirdClient;
+using Npgsql;
 
 namespace DeltaCore.DataAccess.DBConnect
 {
-    public class FBConexion : IDBConnect
+    public class PgConexion : IDBConnect
     {
         #region "Elementos de la Clase"
-
-        protected FbCommand cmd;
-        protected FbConnection cnx;
-
+        protected NpgsqlCommand cmd = null;
+        protected NpgsqlConnection cnx = null;
         #endregion
 
         #region "Métodos Base"
-
         /// <summary>
         /// Constructor, inicializa la clase creando el objeto de conexion con la cadena de conexión, un command y los relaciona.
         /// Crea una nueva instancia del la clase “conexion” y se conecta por default a la base de datos “bdnsar”
         /// </summary>    
         public void DBConnect(string DB)
         {
-            cnx = new FbConnection();
-            cmd = new FbCommand { Connection = cnx };
+            cnx = new NpgsqlConnection();
+            cmd = new NpgsqlCommand { Connection = cnx };
 
             try
             {
                 cnx.ConnectionString = DB;
             }
-            catch (FbException sqlExcep)
+            catch (NpgsqlException sqlExcep)
             {
                 throw new Exception(sqlExcep.Message, sqlExcep);
             }
@@ -52,9 +50,10 @@ namespace DeltaCore.DataAccess.DBConnect
                 {
                     cnx.Open();
                 }
+                cmd.CommandType = CommandType.Text; //Solo existen select en PostgreSQL, un stp es un function que regresa o no parametros
                 return true;
             }
-            catch (FbException sqlExcep)
+            catch (NpgsqlException sqlExcep)
             {
                 throw new Exception(sqlExcep.Message, sqlExcep);
             }
@@ -72,7 +71,7 @@ namespace DeltaCore.DataAccess.DBConnect
                     cnx.Close();
                 return true;
             }
-            catch (FbException sqlExcep)
+            catch (NpgsqlException sqlExcep)
             {
                 throw new Exception(sqlExcep.Message, sqlExcep);
             }
@@ -81,18 +80,35 @@ namespace DeltaCore.DataAccess.DBConnect
                 throw new Exception(ex.Message, ex);
             }
         }
-
         #endregion
 
         #region Wizard
-
-        private void LoadParameters(Dictionary<string, object> sqlParams)
+        private string LoadParameters(string select, Dictionary<string, object> sqlParams)
         {
-            if (sqlParams == null || sqlParams.Count <= 0) return;
-            foreach (var param in sqlParams)
+            var swap = sqlParams.Select(param => param.Value).ToList();
+            var sb = new StringBuilder();
+            foreach (var sqlParam in sqlParams)
             {
-                cmd.Parameters.AddWithValue(param.Key, param.Value);
+                if (sqlParam.Value == null)
+                    sb.Append("null,");
+                else
+                    sb.AppendFormat("'{0}',", sqlParam.Value);
             }
+            return "(" + sb.ToString().Substring(0, sb.ToString().Length - 1) + ")";
+        }
+
+        private string LoadParameters(string select, Dictionary<string, string> sqlParams)
+        {
+            var swap = sqlParams.Select(param => param.Value).ToList();
+            var sb = new StringBuilder();
+            foreach (var sqlParam in sqlParams)
+            {
+                if (sqlParam.Value == null)
+                    sb.Append("null,");
+                else
+                    sb.AppendFormat("'{0}',", sqlParam.Value);
+            }
+            return "(" + sb.ToString().Substring(0, sb.ToString().Length - 1) + ")";
         }
 
         private DataTable Reader2Table()
@@ -126,47 +142,60 @@ namespace DeltaCore.DataAccess.DBConnect
             return null;
         }
 
+
+
         private DataTable StpAdapter2Table()
         {
-            var da = new FbDataAdapter();
+            var da = new NpgsqlDataAdapter();
             var dt = new DataTable();
             da.SelectCommand = cmd;
             da.Fill(dt);
             return dt;
         }
-        
+
         private DataTable Adapter2Table()
         {
-            var da = new FbDataAdapter(cmd);
+            var da = new NpgsqlDataAdapter(cmd);
             var dt = new DataTable();
             da.Fill(dt);
             return dt;
         }
 
-        /// <summary>
-        /// Reinicia los valores iniciales del command
-        /// </summary>
         private void Refresh()
         {
             cmd.CommandText = string.Empty;
             cmd.Parameters.Clear();
         }
-
         #endregion
 
         #region DB Methods
-
         public void ContinuesQry(string stp, Dictionary<string, object> SqlParams)
         {
             Refresh();
             try
             {
-                cmd.CommandText = stp;
-                cmd.CommandType = CommandType.Text;
-                LoadParameters(SqlParams);
+                cmd.CommandText = "select " + LoadParameters(stp, SqlParams);
                 cmd.ExecuteNonQuery();
             }
-            catch (FbException SqlExcep)
+            catch (NpgsqlException SqlExcep)
+            {
+                throw new Exception(SqlExcep.Message, SqlExcep);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+        }
+
+        public void ContinuesQry(string stp, Dictionary<string, string> SqlParams)
+        {
+            Refresh();
+            try
+            {
+                cmd.CommandText = "select " + LoadParameters(stp, SqlParams);
+                cmd.ExecuteNonQuery();
+            }
+            catch (NpgsqlException SqlExcep)
             {
                 throw new Exception(SqlExcep.Message, SqlExcep);
             }
@@ -182,10 +211,9 @@ namespace DeltaCore.DataAccess.DBConnect
             try
             {
                 cmd.CommandText = stp;
-                cmd.CommandType = CommandType.StoredProcedure;
                 cmd.ExecuteNonQuery();
             }
-            catch (FbException SqlExcep)
+            catch (NpgsqlException SqlExcep)
             {
                 throw new Exception(SqlExcep.Message, SqlExcep);
             }
@@ -200,13 +228,11 @@ namespace DeltaCore.DataAccess.DBConnect
             Refresh();
             try
             {
-                cmd.CommandText = stp;
-                cmd.CommandType = CommandType.StoredProcedure;
-                LoadParameters(SqlParams);
+                cmd.CommandText = "select " + stp + LoadParameters(stp, SqlParams);
                 Monitor();
                 cmd.ExecuteNonQuery();
             }
-            catch (FbException SqlExcep)
+            catch (NpgsqlException SqlExcep)
             {
                 throw new Exception(SqlExcep.Message, SqlExcep);
             }
@@ -220,19 +246,89 @@ namespace DeltaCore.DataAccess.DBConnect
             }
         }
 
-        public void ExecStp(string stp, Dictionary<string, object> SqlParams, FbTransaction Trans)
+        public void ExecQry(string stp)
         {
             Refresh();
             try
             {
                 cmd.CommandText = stp;
-                cmd.CommandType = CommandType.StoredProcedure;
-                LoadParameters(SqlParams);
+                Monitor();
+                cmd.ExecuteNonQuery();
+            }
+            catch (NpgsqlException SqlExcep)
+            {
+                throw new Exception(SqlExcep.Message, SqlExcep);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+            finally
+            {
+                Closer();
+            }
+        }
+
+        public List<object> ExecQry(string Query, Dictionary<string, object> SqlParams, object objBase)
+        {
+            Refresh();
+            try
+            {
+                cmd.CommandText = "select * from " + Query + LoadParameters(Query, SqlParams);
+                Monitor();
+                return Query2List(objBase);
+            }
+            catch (NpgsqlException SqlExcep)
+            {
+                throw new Exception(SqlExcep.Message, SqlExcep);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+            finally
+            {
+                if (cmd.Connection.State == System.Data.ConnectionState.Open)
+                {
+                    cmd.Connection.Close();
+                }
+            }
+        }
+
+        public void ExecStp(string stp, Dictionary<string, object> SqlParams, NpgsqlTransaction Trans)
+        {
+            Refresh();
+            try
+            {
+                cmd.CommandText = "select " + stp + LoadParameters(stp, SqlParams);
                 cmd.Transaction = Trans;
                 Monitor();
                 cmd.ExecuteNonQuery();
             }
-            catch (FbException SqlExcep)
+            catch (NpgsqlException SqlExcep)
+            {
+                throw new Exception(SqlExcep.Message, SqlExcep);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+            finally
+            {
+                Closer();
+            }
+        }
+
+        public DataTable ExecStp(string stp, Dictionary<string, object> SqlParams)
+        {
+            Refresh();
+            try
+            {
+                cmd.CommandText = "select * from " + stp + LoadParameters(stp, SqlParams);
+                Monitor();
+                return StpAdapter2Table();
+            }
+            catch (NpgsqlException SqlExcep)
             {
                 throw new Exception(SqlExcep.Message, SqlExcep);
             }
@@ -251,91 +347,11 @@ namespace DeltaCore.DataAccess.DBConnect
             Refresh();
             try
             {
-                cmd.CommandType = CommandType.Text;
                 cmd.CommandText = Program;
                 Monitor();
                 return Adapter2Table();
             }
-            catch (FbException SqlExcep)
-            {
-                throw new Exception(SqlExcep.Message, SqlExcep);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
-            finally
-            {
-                Closer();
-            }
-        }
-
-        public DataTable ExecStp(string sql, Dictionary<string, object> SqlParams)
-        {
-            Refresh();
-            try
-            {
-                cmd.CommandText = sql;
-                cmd.CommandType = CommandType.StoredProcedure;
-                LoadParameters(SqlParams);
-                Monitor();
-                return StpAdapter2Table();
-            }
-            catch (FbException SqlExcep)
-            {
-                throw new Exception(SqlExcep.Message, SqlExcep);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
-            finally
-            {
-                Closer();
-            }
-        }
-        
-        public List<object> ExecQry(string Query, Dictionary<string, object> SqlParams, object objBase)
-        {
-            Refresh();
-            try
-            {
-                cmd.CommandText = Query;
-                cmd.CommandType = CommandType.Text;
-                LoadParameters(SqlParams);
-                Monitor();
-                return Query2List(objBase);
-            }
-            catch (FbException SqlExcep)
-            {
-                //return null;
-                throw new Exception(SqlExcep.Message, SqlExcep);
-            }
-            catch (Exception ex)
-            {
-                //return null;
-                throw new Exception(ex.Message, ex);
-            }
-            finally
-            {
-                if (cmd.Connection.State == System.Data.ConnectionState.Open)
-                {
-                    cmd.Connection.Close();
-                }
-            }
-        }
-
-        public void ExecQry(string stp)
-        {
-            Refresh();
-            try
-            {
-                cmd.CommandType = CommandType.Text;
-                cmd.CommandText = stp;
-                Monitor();
-                cmd.ExecuteNonQuery();
-            }
-            catch (FbException SqlExcep)
+            catch (NpgsqlException SqlExcep)
             {
                 throw new Exception(SqlExcep.Message, SqlExcep);
             }
@@ -359,7 +375,7 @@ namespace DeltaCore.DataAccess.DBConnect
                 Monitor();
                 return cmd.ExecuteScalar();
             }
-            catch (FbException SqlExcep)
+            catch (NpgsqlException SqlExcep)
             {
                 throw new Exception(SqlExcep.Message, SqlExcep);
             }
@@ -379,11 +395,7 @@ namespace DeltaCore.DataAccess.DBConnect
             try
             {
                 cmd.CommandText = SQL;
-                cmd.CommandType = CommandType.Text;
-                if (cmd.Connection.State == ConnectionState.Closed)
-                {
-                    cmd.Connection.Open();
-                }
+                Monitor();
                 return Reader2Table().Rows[Index];
             }
             catch (Exception ex)
@@ -398,7 +410,6 @@ namespace DeltaCore.DataAccess.DBConnect
                 }
             }
         }
-
         #endregion
     }
 }

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DeltaCore.Utilities.Research;
+using System;
 using System.Collections.Generic;
 using System.Data;                     
 
@@ -8,6 +9,11 @@ namespace DeltaCore.DataAccess.DBConnect
     {
         #region "Métodos Base"
 
+        [Title("Default Settings")]
+        [Category("1. Getting Server")]
+        [Description("We can use Interface que crea un cliente para interactuar con base de datos SQL. If we do not specify any arguement then it connects with mongodb instance running on localhost on default port [27017]")]
+        [Code("Console", "mongo")]
+        [Code("C#", "new DeltaCore.DataAccess.DBConnect\n\t.GetServer()\n\t.Connect()")]
         void DBConnect(string db);
 
         /// <summary>

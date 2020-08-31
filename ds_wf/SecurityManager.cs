@@ -3,7 +3,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
-using MathNet.Numerics.RandomSources;
 
 namespace DeltaCore.WorkFlow
 {
@@ -204,17 +203,6 @@ namespace DeltaCore.WorkFlow
             return plaintext;
         }
 
-        #endregion
-
-        public int Random_Style(int seed)
-        {
-            RandomSource rs = new SystemRandomSource();
-            return rs.Next();
-        }
-
-        public double FndBetaReg(int usuario, byte horizontal, byte vertical)
-        {
-            return MathNet.Numerics.Fn.BetaRegularized(usuario, horizontal, vertical);
-        }
+        #endregion        
     }
 }

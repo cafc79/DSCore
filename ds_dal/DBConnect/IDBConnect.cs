@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
+using System.Data;                     
 
 namespace DeltaCore.DataAccess.DBConnect
 {
@@ -35,9 +35,10 @@ namespace DeltaCore.DataAccess.DBConnect
 
         DataTable GetSelect(string program);
 
-        Object ExecScalar(string program);
+	    Object ExecScalar(string program);
 
         DataRow BusquedaReg(string SQL, int Index);
+
 
         #endregion
     }

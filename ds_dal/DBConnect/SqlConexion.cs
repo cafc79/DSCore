@@ -6,6 +6,7 @@ using DeltaCore.Utilities;
 
 namespace DeltaCore.DataAccess.DBConnect
 {
+
     public class SqlConexion : IDBConnect
     {
         #region "Elementos de la Clase"
@@ -194,30 +195,6 @@ namespace DeltaCore.DataAccess.DBConnect
             }
         }
 
-        public object ExecScalar(string sql)
-        {
-            Refresh();
-            try
-            {
-                cmd.CommandText = sql;
-                cmd.CommandType = CommandType.StoredProcedure;
-                Monitor();
-                return cmd.ExecuteScalar();
-            }
-            catch (SqlException SqlExcep)
-            {
-                throw new Exception(SqlExcep.Message, SqlExcep);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
-            finally
-            {
-                Closer();
-            }
-        }
-
         public void ExecQry(string stp, Dictionary<string, object> SqlParams)
         {
             Refresh();
@@ -299,6 +276,7 @@ namespace DeltaCore.DataAccess.DBConnect
             try
             {
                 cmd.CommandText = sql;
+                cmd.CommandTimeout = 110;
                 cmd.CommandType = CommandType.StoredProcedure;
                 LoadParameters(SqlParams);
                 Monitor();
@@ -317,7 +295,7 @@ namespace DeltaCore.DataAccess.DBConnect
                 Closer();
             }
         }
-
+        
         public List<object> ExecQry(string Query, Dictionary<string, object> SqlParams, object objBase)
         {
             Refresh();
@@ -357,6 +335,30 @@ namespace DeltaCore.DataAccess.DBConnect
                 cmd.CommandText = stp;
                 Monitor();
                 cmd.ExecuteNonQuery();
+            }
+            catch (SqlException SqlExcep)
+            {
+                throw new Exception(SqlExcep.Message, SqlExcep);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+            finally
+            {
+                Closer();
+            }
+        }
+
+        public object ExecScalar(string sql)
+        {
+            Refresh();
+            try
+            {
+                cmd.CommandText = sql;
+                cmd.CommandType = CommandType.StoredProcedure;
+                Monitor();
+                return cmd.ExecuteScalar();
             }
             catch (SqlException SqlExcep)
             {

@@ -194,30 +194,6 @@ namespace DeltaCore.DataAccess.DBConnect
             }
         }
 
-        public object ExecScalar(string sql)
-        {
-            Refresh();
-            try
-            {
-                cmd.CommandText = sql;
-                cmd.CommandType = CommandType.StoredProcedure;
-                Monitor();
-                return cmd.ExecuteScalar();
-            }
-            catch (OracleException SqlExcep)
-            {
-                throw new Exception(SqlExcep.Message, SqlExcep);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
-            finally
-            {
-                Closer();
-            }
-        }
-
         public void ExecQry(string stp, Dictionary<string, object> SqlParams)
         {
             Refresh();
@@ -368,6 +344,30 @@ namespace DeltaCore.DataAccess.DBConnect
                 {
                     cmd.Connection.Close();
                 }
+            }
+        }
+
+        public object ExecScalar(string sql)
+        {
+            Refresh();
+            try
+            {
+                cmd.CommandText = sql;
+                cmd.CommandType = CommandType.StoredProcedure;
+                Monitor();
+                return cmd.ExecuteScalar();
+            }
+            catch (OracleException SqlExcep)
+            {
+                throw new Exception(SqlExcep.Message, SqlExcep);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+            finally
+            {
+                Closer();
             }
         }
 

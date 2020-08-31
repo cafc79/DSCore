@@ -10,28 +10,21 @@ namespace DeltaCore.WorkFlow
 	{
 		private SmtpClient smtp;
 		private MailMessage message;
-		public delegate bool SendEmailDelegate(string msgBody, string msgSubject);
+	    private string mailSender;
+        public delegate bool SendEmailDelegate(string sendTo, string msgBody, string msgSubject);
 
 		/// <summary>
 		/// Constructor alterno el cual recibe la configuración personalizada
 		/// </summary>
-		public MailManager(string server, int puerto, string usuario, string contraseña, string sendFrom, string sendTo)
+		public MailManager(string server, int puerto, string usuario, string contraseña)
 		{
 			smtp = new SmtpClient(server)
 			       	{Credentials = new System.Net.NetworkCredential(usuario, contraseña), EnableSsl = false, Timeout = 10000};
 			if (puerto != 0)
 				smtp.Port = puerto;
-			message = new MailMessage(sendFrom, sendTo) { IsBodyHtml = true };
+		    mailSender = usuario;
 		}
-
-		public MailManager(string address)
-		{
-			smtp = new SmtpClient();
-			message = new MailMessage();
-			message.To.Add(address);
-			message.IsBodyHtml = true;
-		}
-		
+        
 		public void Message_AddOn(List<string> lstBCC, Stream stream, string attName, string attMIME)
 		{
 			if (stream != null && stream.Length > 0 && !string.IsNullOrEmpty(attName))
@@ -43,11 +36,9 @@ namespace DeltaCore.WorkFlow
 		/// <summary>
 		/// Método que se encargá de enviar el mail, basado en la configuracion del contructor
 		/// </summary>
-		public bool SendMail(string msgBody, string msgSubject)
+		public bool SendMail(string sendTo, string msgBody, string msgSubject)
 		{
-			message.Body = msgBody;
-			message.Subject = msgSubject;
-			//ServicePointManager.ServerCertificateValidationCallback = (s, certificate, chain, sslPolicyErrors) => true;
+		    message = new MailMessage(mailSender, sendTo) {IsBodyHtml = true, Body = msgBody, Subject = msgSubject};
 			try
 			{
 				smtp.Send(message);
@@ -76,13 +67,13 @@ namespace DeltaCore.WorkFlow
 			}
 		}
 
-		public bool SendEmailAsync(string msgBody, string msgSubject)
+		public bool SendEmailAsync(string sendTo, string msgBody, string msgSubject)
 		{
 			try
 			{
 				var dc = new SendEmailDelegate(SendMail);
 				var cb = new AsyncCallback(this.GetResultsOnCallback);
-				IAsyncResult ar = dc.BeginInvoke(msgBody, msgSubject, cb, null);
+				IAsyncResult ar = dc.BeginInvoke(sendTo, msgBody, msgSubject, cb, null);
 			}
 			catch (Exception ex)
 			{

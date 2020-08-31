@@ -178,9 +178,7 @@ namespace DeltaCore.WorkFlow
             var response = (HttpWebResponse) request.EndGetResponse(result);
         }
 
-        #region Disponibilidad de Red
-
-        
+        #region Disponibilidad de Red           
         public bool IsNCSIConnected(string WebIP)
         {
             try

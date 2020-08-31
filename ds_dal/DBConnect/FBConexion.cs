@@ -294,31 +294,7 @@ namespace DeltaCore.DataAccess.DBConnect
                 Closer();
             }
         }
-
-        public object ExecScalar(string sql)
-        {
-            Refresh();
-            try
-            {
-                cmd.CommandText = sql;
-                cmd.CommandType = CommandType.Text;
-                Monitor();
-                return cmd.ExecuteScalar();
-            }
-            catch (FbException SqlExcep)
-            {
-                throw new Exception(SqlExcep.Message, SqlExcep);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception(ex.Message, ex);
-            }
-            finally
-            {
-                Closer();
-            }
-        }
-
+        
         public List<object> ExecQry(string Query, Dictionary<string, object> SqlParams, object objBase)
         {
             Refresh();
@@ -358,6 +334,30 @@ namespace DeltaCore.DataAccess.DBConnect
                 cmd.CommandText = stp;
                 Monitor();
                 cmd.ExecuteNonQuery();
+            }
+            catch (FbException SqlExcep)
+            {
+                throw new Exception(SqlExcep.Message, SqlExcep);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex);
+            }
+            finally
+            {
+                Closer();
+            }
+        }
+
+        public object ExecScalar(string sql)
+        {
+            Refresh();
+            try
+            {
+                cmd.CommandText = sql;
+                cmd.CommandType = CommandType.Text;
+                Monitor();
+                return cmd.ExecuteScalar();
             }
             catch (FbException SqlExcep)
             {
